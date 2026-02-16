@@ -33,16 +33,22 @@ class User(db.Model):
     password = db.Column(db.String(100))
     role = db.Column(db.String(50))
 
+# ---------------- CREATE DB ----------------
+with app.app_context():
+    db.create_all()
+
 # ---------------- HOME ----------------
 @app.route("/")
 def index():
     students = Student.query.all()
     teachers = Teacher.query.all()
-    return render_template("index.html",
-                           students=students,
-                           teachers=teachers)
+    return render_template(
+        "index.html",
+        students=students,
+        teachers=teachers
+    )
 
-# =============about==================
+# ---------------- ABOUT ----------------
 @app.route("/about")
 def about():
     return render_template("about.html")
@@ -50,16 +56,29 @@ def about():
 # ---------------- SIGNUP ----------------
 @app.route("/signup", methods=["POST"])
 def signup():
-    user = User(
-        fname=request.form.get("fname"),
-        lname=request.form.get("lname"),
-        email=request.form.get("email"),
-        password=request.form.get("password"),
-        role=request.form.get("role")
-    )
-    db.session.add(user)
-    db.session.commit()
-    return redirect(url_for("home"))
+    try:
+        email = request.form.get("email")
+
+        # prevent duplicate email crash
+        if User.query.filter_by(email=email).first():
+            return "Email already registered ❌"
+
+        user = User(
+            fname=request.form.get("fname"),
+            lname=request.form.get("lname"),
+            email=email,
+            password=request.form.get("password"),
+            role=request.form.get("role")
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        return redirect(url_for("index"))
+
+    except Exception as e:
+        db.session.rollback()
+        return str(e)
 
 # ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
@@ -67,8 +86,10 @@ def login():
     email = request.form.get("email")
     password = request.form.get("password")
 
-    user = User.query.filter_by(email=email,
-                                password=password).first()
+    user = User.query.filter_by(
+        email=email,
+        password=password
+    ).first()
 
     if user:
         return "Login Successful ✅"
@@ -77,32 +98,44 @@ def login():
 # ---------------- ADD STUDENT ----------------
 @app.route("/add_student", methods=["POST"])
 def add_student():
-    s = Student(
-        name=request.form.get("name"),
-        email=request.form.get("email"),
-        age=request.form.get("age"),
-        student_class=request.form.get("class")
-    )
-    db.session.add(s)
-    db.session.commit()
-    return redirect(url_for("home"))
+    try:
+        s = Student(
+            name=request.form.get("name"),
+            email=request.form.get("email"),
+            age=int(request.form.get("age")),
+            student_class=request.form.get("class")
+        )
+
+        db.session.add(s)
+        db.session.commit()
+
+        return redirect(url_for("index"))
+
+    except Exception as e:
+        db.session.rollback()
+        return str(e)
 
 # ---------------- ADD TEACHER ----------------
 @app.route("/add_teacher", methods=["POST"])
 def add_teacher():
-    t = Teacher(
-        name=request.form.get("name"),
-        subject=request.form.get("subject"),
-        age=request.form.get("age"),
-        experience=request.form.get("experience")
-    )
-    db.session.add(t)
-    db.session.commit()
-    return redirect(url_for("home"))
+    try:
+        exp = request.form.get("experience")
 
-# ---------------- CREATE DB ----------------
-with app.app_context():
-    db.create_all()
+        t = Teacher(
+            name=request.form.get("name"),
+            subject=request.form.get("subject"),
+            age=int(request.form.get("age")),
+            experience=int(exp) if exp else 0
+        )
+
+        db.session.add(t)
+        db.session.commit()
+
+        return redirect(url_for("index"))
+
+    except Exception as e:
+        db.session.rollback()
+        return str(e)
 
 if __name__ == "__main__":
     app.run(debug=True)
