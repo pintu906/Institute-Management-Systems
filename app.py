@@ -56,29 +56,23 @@ def about():
 # ---------------- SIGNUP ----------------
 @app.route("/signup", methods=["POST"])
 def signup():
-    try:
-        email = request.form.get("email")
+    email = request.form.get("email")
 
-        # prevent duplicate email crash
-        if User.query.filter_by(email=email).first():
-            return "Email already registered ❌"
+    if User.query.filter_by(email=email).first():
+        return "Email already registered ❌"
 
-        user = User(
-            fname=request.form.get("fname"),
-            lname=request.form.get("lname"),
-            email=email,
-            password=request.form.get("password"),
-            role=request.form.get("role")
-        )
+    user = User(
+        fname=request.form.get("fname"),
+        lname=request.form.get("lname"),
+        email=email,
+        password=request.form.get("password"),
+        role=request.form.get("role")
+    )
 
-        db.session.add(user)
-        db.session.commit()
+    db.session.add(user)
+    db.session.commit()
 
-        return redirect(url_for("index"))
-
-    except Exception as e:
-        db.session.rollback()
-        return str(e)
+    return redirect(url_for("index"))
 
 # ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
@@ -98,44 +92,87 @@ def login():
 # ---------------- ADD STUDENT ----------------
 @app.route("/add_student", methods=["POST"])
 def add_student():
-    try:
-        s = Student(
-            name=request.form.get("name"),
-            email=request.form.get("email"),
-            age=int(request.form.get("age")),
-            student_class=request.form.get("class")
-        )
+    s = Student(
+        name=request.form.get("name"),
+        email=request.form.get("email"),
+        age=int(request.form.get("age")),
+        student_class=request.form.get("class")
+    )
 
-        db.session.add(s)
-        db.session.commit()
+    db.session.add(s)
+    db.session.commit()
 
-        return redirect(url_for("index"))
-
-    except Exception as e:
-        db.session.rollback()
-        return str(e)
+    return redirect(url_for("index"))
 
 # ---------------- ADD TEACHER ----------------
 @app.route("/add_teacher", methods=["POST"])
 def add_teacher():
-    try:
-        exp = request.form.get("experience")
+    exp = request.form.get("experience")
 
-        t = Teacher(
-            name=request.form.get("name"),
-            subject=request.form.get("subject"),
-            age=int(request.form.get("age")),
-            experience=int(exp) if exp else 0
-        )
+    t = Teacher(
+        name=request.form.get("name"),
+        subject=request.form.get("subject"),
+        age=int(request.form.get("age")),
+        experience=int(exp) if exp else 0
+    )
 
-        db.session.add(t)
+    db.session.add(t)
+    db.session.commit()
+
+    return redirect(url_for("index"))
+
+# ---------------- EDIT STUDENT ----------------
+@app.route("/edit_student/<int:id>", methods=["GET", "POST"])
+def edit_student(id):
+    student = Student.query.get_or_404(id)
+
+    if request.method == "POST":
+        student.name = request.form.get("name")
+        student.email = request.form.get("email")
+        student.age = int(request.form.get("age"))
+        student.student_class = request.form.get("class")
+
         db.session.commit()
-
         return redirect(url_for("index"))
 
-    except Exception as e:
-        db.session.rollback()
-        return str(e)
+    return render_template("edit_student.html", student=student)
 
+# ---------------- DELETE STUDENT ----------------
+@app.route("/delete_student/<int:id>")
+def delete_student(id):
+    student = Student.query.get_or_404(id)
+
+    db.session.delete(student)
+    db.session.commit()
+
+    return redirect(url_for("index"))
+
+# ---------------- EDIT TEACHER ----------------
+@app.route("/edit_teacher/<int:id>", methods=["GET","POST"])
+def edit_teacher(id):
+    teacher = Teacher.query.get_or_404(id)
+
+    if request.method == "POST":
+        teacher.name = request.form.get("name")
+        teacher.subject = request.form.get("subject")
+        teacher.age = int(request.form.get("age"))
+        teacher.experience = int(request.form.get("experience"))
+
+        db.session.commit()
+        return redirect(url_for("index"))
+
+    return render_template("edit_teacher.html", teacher=teacher)
+
+# ---------------- DELETE TEACHER ----------------
+@app.route("/delete_teacher/<int:id>")
+def delete_teacher(id):
+    teacher = Teacher.query.get_or_404(id)
+
+    db.session.delete(teacher)
+    db.session.commit()
+
+    return redirect(url_for("index"))
+
+# ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
